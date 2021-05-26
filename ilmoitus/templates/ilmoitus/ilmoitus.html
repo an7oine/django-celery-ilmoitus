@@ -57,29 +57,19 @@
     $.extend(viestit, {
       onmessage: function (e) {
         const ilmoitus = JSON.parse(e.data);
+        nayta_ilmoitus(ilmoitus);
+      }
+    });
+
     {% else %}
     $.ajax({
       url: "{% url "ilmoitukset" %}",
       success: function (sanoma) {
-        for (const ilmoitus of sanoma)
-    {% endif %}
-          $("#ilmoitukset").append(
-            $("<div/>", {
-              class: ilmoitus.tags + " alert alert-dismissible",
-              role: "alert",
-            }).append(
-              $("<button/>", {
-                type: "button",
-                class: "close",
-                "data-dismiss": "alert",
-                "aria-label": "{% trans "Sulje" %}"
-              }).append(
-                $("<span/>", {"aria-hidden": true, text: "⨉"})
-              ),
-              ilmoitus.message
-            )
-          );
+        for (const ilmoitus of sanoma) {
+          nayta_ilmoitus(ilmoitus);
+        }
       }
     });
+    {% endif %}
   </script>
 {% endblock js %}
