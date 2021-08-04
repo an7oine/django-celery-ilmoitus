@@ -9,12 +9,9 @@
 {% block css %}
   <style>
     #ilmoitukset-rivi {
-      display: inline;
       z-index: 1000;
       position: absolute;
       left: 50%;
-      bottom: -90px;
-      white-space: pre-wrap;
     }
     #ilmoitukset {
       display: inline-block;
@@ -22,6 +19,8 @@
     }
     #ilmoitukset >div {
       float: left;
+      margin: 1em;
+      white-space: pre-wrap;
     }
   </style>
 {% endblock css %}
