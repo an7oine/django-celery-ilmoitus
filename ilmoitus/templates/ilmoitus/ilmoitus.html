@@ -53,13 +53,21 @@
     {% endcomment %}
 
     {% if request.websocket %}
-    var viestit = new WebSocket("{{ request.websocket }}{% url "ilmoitukset" %}");
-    $.extend(viestit, {
-      onmessage: function (e) {
-        const ilmoitus = JSON.parse(e.data);
-        nayta_ilmoitus(ilmoitus);
+      function avaaYhteys() {
+        let viestit = new WebSocket("{{ request.websocket }}{% url "ilmoitukset" %}");
+        $.extend(viestit, {
+          onmessage: function (e) {
+            const ilmoitus = JSON.parse(e.data);
+            nayta_ilmoitus(ilmoitus);
+          },
+          onclose: function (e) {
+            if (e.code > 1001)
+              // Avataan yhteys uudelleen 200 ms:n kuluttua.
+              setTimeout(avaaYhteys, 200);
+          }
+        });
       }
-    });
+      avaaYhteys();
 
     {% else %}
     $.ajax({
