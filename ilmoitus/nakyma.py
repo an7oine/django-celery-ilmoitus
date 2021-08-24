@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import socket
 
 from asgiref.sync import async_to_sync, sync_to_async
 
@@ -68,6 +69,10 @@ class Ilmoitukset(LoginRequiredMixin, generic.View):
         # for ilmoitus in await sync_to_async
       # async def laheta_ilmoitukset
 
+    def celery_capture():
+      try: receiver.capture(timeout=10)
+      except socket.timeout: pass
+
     # Luo oma säikeensä Celery-signaalien kuunteluun.
     channel = celery_app.broker_connection().channel()
     loop = asyncio.get_running_loop()
@@ -75,7 +80,7 @@ class Ilmoitukset(LoginRequiredMixin, generic.View):
       celery_viestikanava(request.session.session_key):
       async_to_sync(laheta_ilmoitukset),
     })
-    luku = loop.run_in_executor(None, receiver.capture)
+    luku = loop.run_in_executor(None, celery_capture)
 
     # Lähetä mahdolliset olemassaolevat ilmoitukset heti.
     await laheta_ilmoitukset()
