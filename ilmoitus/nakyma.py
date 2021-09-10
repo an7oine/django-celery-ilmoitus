@@ -74,7 +74,13 @@ class Ilmoitukset(LoginRequiredMixin, generic.View):
       except socket.timeout: pass
 
     # Luo oma säikeensä Celery-signaalien kuunteluun.
-    channel = celery_app.broker_connection().channel()
+    try:
+      channel = celery_app.broker_connection().channel()
+    except Exception:
+      await request.send(json.dumps({'status': '500'}))
+      raise
+
+    # Aja Celery-viestien vastaanottorutiini taustalla.
     loop = asyncio.get_running_loop()
     receiver = celery_app.events.Receiver(channel=channel, handlers={
       celery_viestikanava(request.session.session_key):

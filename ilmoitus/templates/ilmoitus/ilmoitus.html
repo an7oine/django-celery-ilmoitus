@@ -58,9 +58,14 @@
         $.extend(viestit, {
           onmessage: function (e) {
             const ilmoitus = JSON.parse(e.data);
-            if (ilmoitus.status == 302)
+            const tila = ilmoitus.status ?? 0;
+            if (tila == 302)
               // HTTP 302: istunto vanhentunut tms. -> päivitetään sivu.
               location.reload();
+            else if (tila >= 300)
+              // HTTP 3xx / 4xx / 5xx: uudelleenohjaus, virhe pyynnössä tai
+              // virhe palvelimella -> katkaistaan.
+              viestit.close(1000);
             else
               nayta_ilmoitus(ilmoitus);
           },
