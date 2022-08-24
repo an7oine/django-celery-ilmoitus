@@ -11,12 +11,20 @@ from django.contrib.messages import get_messages
 from django.contrib.messages.storage import default_storage
 from django.http import JsonResponse
 from django.urls import path
-from django.views import generic
+
+# Mikäli pistoke-paketti ei ole käytössä, käytetään Djangon vakio-
+# näkymäluokkaa. Tällöin metodi `async def websocket` ei ole ongelma,
+# sillä sitä ei tunnisteta HTTP-verbin toteutukseksi.
+try:
+  from pistoke.nakyma import WebsocketNakyma
+except ImportError:
+  # pylint: disable=ungrouped-imports
+  from django.views.generic import View as WebsocketNakyma
 
 from .celery import celery_app, celery_viestikanava
 
 
-class Ilmoitukset(LoginRequiredMixin, generic.View):
+class Ilmoitukset(LoginRequiredMixin, WebsocketNakyma):
 
   bootstrap_luokat = {
     'debug': 'alert-info',
@@ -51,6 +59,8 @@ class Ilmoitukset(LoginRequiredMixin, generic.View):
   async def websocket(self, request):
     '''
     Websocket-toteutus. Palauta ilmoituksia sitä mukaa, kun niitä tallennetaan.
+
+    Vaatii django-pistoke-paketin asennuksen.
     '''
     async def laheta_ilmoitukset(signaali=None):
       ''' Lähetä kaikki olemassaolevat ilmoitukset selaimelle. '''
