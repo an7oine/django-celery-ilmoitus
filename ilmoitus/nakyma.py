@@ -11,12 +11,14 @@ from django.contrib.messages import get_messages
 from django.contrib.messages.storage import default_storage
 from django.http import JsonResponse
 from django.urls import path
+from django.utils.decorators import method_decorator
 
 # Mikäli pistoke-paketti ei ole käytössä, käytetään Djangon vakio-
 # näkymäluokkaa. Tällöin metodi `async def websocket` ei ole ongelma,
 # sillä sitä ei tunnisteta HTTP-verbin toteutukseksi.
 try:
   from pistoke.nakyma import WebsocketNakyma
+  from pistoke import WebsocketProtokolla
 except ImportError:
   # pylint: disable=ungrouped-imports
   from django.views.generic import View as WebsocketNakyma
@@ -56,6 +58,7 @@ class Ilmoitukset(LoginRequiredMixin, WebsocketNakyma):
     ], safe=False)
     # def get
 
+  @method_decorator(WebsocketProtokolla)
   async def websocket(self, request):
     '''
     Websocket-toteutus. Palauta ilmoituksia sitä mukaa, kun niitä tallennetaan.
