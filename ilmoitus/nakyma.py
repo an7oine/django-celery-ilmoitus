@@ -22,6 +22,7 @@ try:
 except ImportError:
   # pylint: disable=ungrouped-imports
   from django.views.generic import View as WebsocketNakyma
+  WebsocketProtokolla = lambda x: x
 
 from .celery import celery_app, celery_viestikanava
 
