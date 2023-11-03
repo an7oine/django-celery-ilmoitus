@@ -6,9 +6,7 @@ import socket
 
 from asgiref.sync import async_to_sync, sync_to_async
 
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.contrib.messages import get_messages
-from django.contrib.messages.storage import default_storage
+from django.contrib import messages
 from django.http import JsonResponse
 from django.utils.decorators import method_decorator
 
@@ -51,7 +49,7 @@ class Ilmoitukset(LoginRequiredMixin, WebsocketNakyma):
   def get(self, request, *args, **kwargs):
     ''' Ajax-toteutus. Palauta JSON-sanoma kaikista ilmoituksista. '''
     # pylint: disable=unused-argument
-    storage = get_messages(request)
+    storage = messages.get_messages(request)
     return JsonResponse([
       self._ilmoitus(ilmoitus)
       for ilmoitus in storage
@@ -71,7 +69,7 @@ class Ilmoitukset(LoginRequiredMixin, WebsocketNakyma):
       def hae_ilmoitukset():
         # pylint: disable=protected-access
         request.session._session_cache = request.session.load()
-        request._messages = default_storage(request)
+        request._messages = messages.storage.default_storage(request)
         for ilmoitus in request._messages:
           yield json.dumps(self._ilmoitus(ilmoitus))
         request._messages.update(None)
@@ -82,34 +80,45 @@ class Ilmoitukset(LoginRequiredMixin, WebsocketNakyma):
         # for ilmoitus in await sync_to_async
       # async def laheta_ilmoitukset
 
-    def celery_capture():
-      try: receiver.capture(timeout=10)
-      except socket.timeout: pass
+    # Lähetä mahdolliset olemassaolevat ilmoitukset heti.
+    await laheta_ilmoitukset()
 
-    # Luo oma säikeensä Celery-signaalien kuunteluun.
+    # Luo kanava Celery-signaalien kuunteluun.
     try:
       channel = celery_app.broker_connection().channel()
     except Exception:
       await request.send(json.dumps({'status': '500'}))
       raise
 
-    # Aja Celery-viestien vastaanottorutiini taustalla.
+    # Luo rutiini Celery-viestien vastaanottoon taustalla.
     loop = asyncio.get_running_loop()
-    receiver = celery_app.events.Receiver(channel=channel, handlers={
-      celery_viestikanava(request.session.session_key):
-      async_to_sync(laheta_ilmoitukset),
-    })
+    receiver = celery_app.events.Receiver(
+      channel=channel,
+      handlers={
+        celery_viestikanava(request.session.session_key):
+        async_to_sync(laheta_ilmoitukset),
+      }
+    )
+
+    # Aja taustalla Celery-kuuntelua, odota Websocket-yhteyden katkaisua.
+    celery_paattyi = asyncio.Event()
+    def celery_capture():
+      try:
+        receiver.capture()
+      finally:
+        celery_paattyi.set()
+      # def celery_capture
     luku = loop.run_in_executor(None, celery_capture)
 
-    # Lähetä mahdolliset olemassaolevat ilmoitukset heti.
-    await laheta_ilmoitukset()
+    async def odota_ja_katkaise():
+      ''' Odota poikkeukseen (CancelledError) saakka. '''
+      try:
+        await celery_paattyi.wait()
+      finally:
+        receiver.should_stop = True
 
     # Kuuntele Celery-signaaleja, kunnes yhteys katkaistaan.
-    try:
-      await luku
-    finally:
-      receiver.should_stop = True
-      await luku
+    await asyncio.gather(luku, odota_ja_katkaise())
     # async def websocket
 
   # class Ilmoitukset
