@@ -24,7 +24,7 @@ except ImportError:
 from .celery import celery_app, celery_viestikanava
 
 
-class Ilmoitukset(LoginRequiredMixin, WebsocketNakyma):
+class Ilmoitukset(WebsocketNakyma):
 
   bootstrap_luokat = {
     'debug': 'alert-info',
