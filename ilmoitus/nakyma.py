@@ -10,7 +10,6 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages import get_messages
 from django.contrib.messages.storage import default_storage
 from django.http import JsonResponse
-from django.urls import path
 from django.utils.decorators import method_decorator
 
 # Mikäli pistoke-paketti ei ole käytössä, käytetään Djangon vakio-
@@ -114,8 +113,3 @@ class Ilmoitukset(LoginRequiredMixin, WebsocketNakyma):
     # async def websocket
 
   # class Ilmoitukset
-
-
-urlpatterns = [
-  path('', Ilmoitukset.as_view(), name='ilmoitukset'),
-]

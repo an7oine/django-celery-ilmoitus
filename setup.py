@@ -18,6 +18,5 @@ setup(
   },
   entry_points={
     'django.sovellus': 'ilmoitus = ilmoitus.sovellus:Ilmoitus',
-    'django.osoitteet': 'ilmoitus = ilmoitus.nakyma',
   },
 )
