@@ -1,12 +1,10 @@
-# -*- coding: utf-8 -*-
-
 from contextlib import contextmanager
 from importlib import import_module
 
+from celery.app import app_or_default
+
 from django.conf import settings
 from django.contrib.messages.storage import default_storage
-
-from .celery import celery_app, celery_viestikanava
 
 
 @contextmanager
@@ -35,11 +33,16 @@ def tallenna_asynkroninen_ilmoitus(session_key):
         # sillä tavanomaista HTTP-paluusanomaa ei ole käytettävissä.
         store.update(None)
         request.session.save()
-        # Lähetä Celery-signaali, jotta käyttäjän mahdollinen avoin istunto
-        # saa reaaliaikaisen tiedon uudesta viestistä.
+
+        # Alusta Celery-lähetyskanava.
+        celery_app = app_or_default()
         channel = celery_app.broker_connection().channel()
         dispatcher = celery_app.events.Dispatcher(channel=channel)
-        dispatcher.send(type=celery_viestikanava(session_key))
+
+        # Lähetä Celery-signaali, jotta käyttäjän mahdollinen avoin istunto
+        # saa reaaliaikaisen tiedon uudesta viestistä.
+        # Ks. `ilmoitus/nakyma.py`.
+        dispatcher.send(type='django.contrib.messages', _alikanava=session_key)
         # if store is not None
       # finally
     # finally
