@@ -30,6 +30,15 @@ class Ilmoitukset(WebsocketNakyma):
     'error': 'alert-danger',
   }
 
+  @staticmethod
+  def viestikanava(session_key):
+    from viestikanava import Viestikanava
+    return Viestikanava(
+      kanava='django.contrib.messages',
+      alikanava=session_key,
+    )
+    # def viestikanava
+
   def _ilmoitus(self, ilmoitus):
     ''' Muodosta JSON-yhteensopiva sanoma ilmoituksen tiedoin. '''
     return {
@@ -59,8 +68,6 @@ class Ilmoitukset(WebsocketNakyma):
 
     Vaatii pakettien asennuksen: celery-viestikanava, django-pistoke.
     '''
-    from viestikanava import Viestikanava
-
     async def laheta_ilmoitukset(signaali=None):
       ''' Lähetä kaikki olemassaolevat ilmoitukset selaimelle. '''
       # pylint: disable=unused-argument
@@ -81,13 +88,9 @@ class Ilmoitukset(WebsocketNakyma):
     # Lähetä mahdolliset olemassaolevat ilmoitukset heti.
     await laheta_ilmoitukset()
 
-    async with Viestikanava(
-      kanava='django.contrib.messages',
-      alikanava=request.session.session_key,
-    ) as kanava:
-      while True:
-        # Hae ja lähetä ilmoitukset aina, kun kanavan kautta saadaan signaali.
-        await kanava.lue()
+    # Hae ja lähetä ilmoitukset aina, kun kanavan kautta saadaan signaali.
+    async with self.viestikanava(request.session.session_key) as kanava:
+      async for __ in kanava:
         await laheta_ilmoitukset()
       # async with Viestikanava
 

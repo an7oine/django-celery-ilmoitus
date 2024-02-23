@@ -1,10 +1,10 @@
 from contextlib import contextmanager
 from importlib import import_module
 
-from celery.app import app_or_default
-
 from django.conf import settings
 from django.contrib.messages.storage import default_storage
+
+from .nakyma import Ilmoitukset
 
 
 @contextmanager
@@ -14,14 +14,12 @@ def tallenna_asynkroninen_ilmoitus(session_key):
   ulkopuolelta, esim. asynkronisen tausta-ajon yhteydessä.
   '''
   # Hae käyttäjän istunto ja muodosta keinotekoinen HTTP-pyyntö.
+  store = None
   try:
     class Pyynto:
       session = import_module(settings.SESSION_ENGINE).SessionStore(session_key)
     request = Pyynto()
     store = default_storage(request)
-  except:
-    store = None
-    raise
   finally:
     # Suoritetaan haluttu toiminto kontekstin sisällä, vaikka viestiajurin
     # muodostus epäonnistuisi. Tällöin `store` on `None`.
@@ -34,15 +32,9 @@ def tallenna_asynkroninen_ilmoitus(session_key):
         store.update(None)
         request.session.save()
 
-        # Alusta Celery-lähetyskanava.
-        celery_app = app_or_default()
-        channel = celery_app.broker_connection().channel()
-        dispatcher = celery_app.events.Dispatcher(channel=channel)
-
-        # Lähetä Celery-signaali, jotta käyttäjän mahdollinen avoin istunto
-        # saa reaaliaikaisen tiedon uudesta viestistä.
-        # Ks. `ilmoitus/nakyma.py`.
-        dispatcher.send(type='django.contrib.messages', _alikanava=session_key)
+        # Lähetä Celery-viestikanavan kautta mahdolliselle, avoimelle
+        # Websocket-yhteydelle tieto uudesta ilmoituksesta.
+        Ilmoitukset.viestikanava(session_key).kirjoita_taustalla()
         # if store is not None
       # finally
     # finally
