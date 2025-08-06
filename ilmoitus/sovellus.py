@@ -7,6 +7,7 @@ from django.core.exceptions import ImproperlyConfigured
 
 TALLENNUS = 'django.contrib.messages.storage.session.SessionStorage'
 
+
 class Ilmoitus(AppConfig):
   name = 'ilmoitus'
 
@@ -17,6 +18,7 @@ class Ilmoitus(AppConfig):
         f' tallennusta:\n'
         f'settings.MESSAGE_STORAGE != {TALLENNUS}'
       )
+    from ilmoitus import viestit  # pylint: disable=unused-import
     # def ready
 
   # class Ilmoitus

@@ -12,6 +12,12 @@ def tallenna_asynkroninen_ilmoitus(session_key):
   '''
   Kontekstikäsittelijä viestin lähettämiseen käyttäjälle HTTP-pyynnön
   ulkopuolelta, esim. asynkronisen tausta-ajon yhteydessä.
+
+  Huomaa: tätä kontekstia ei tule käyttää silloin, kun viesti tallennetaan
+  HTTP-pyynnön käsittelyn yhteydessä tälle samalle pyynnölle. Silloin tieto
+  uudesta viestistä viedään Celery-kanavaan automaattisesti istunnon
+  tallentamisen yhteydessä; tässä viety sama tieto aiheuttaa saman viestin
+  näkymisen käyttäjälle kahdesti.
   '''
   # Hae käyttäjän istunto ja muodosta keinotekoinen HTTP-pyyntö.
   store = None
